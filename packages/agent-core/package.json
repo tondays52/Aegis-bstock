@@ -1,0 +1,20 @@
+{
+  "name": "@aegis/agent-core",
+  "version": "1.0.0",
+  "description": "Core autonomous agent, multi-agent council and execution state machine for Aegis-bStock",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/test/*.test.js",
+    "live": "node dist/data/live-runner.js"
+  },
+  "dependencies": {
+    "@aegis/audit-engine": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.7.3"
+  }
+}

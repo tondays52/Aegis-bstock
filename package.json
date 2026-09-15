@@ -1,0 +1,31 @@
+{
+  "name": "aegis-bstock-monorepo",
+  "version": "1.0.0",
+  "description": "Autonomous Epistemic Agent with Adversarial Risk Council & Verifiable Decision Lineage on BNB Smart Chain",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w packages/audit-engine && npm run build -w packages/agent-core && npm run build -w packages/dashboard && npm run build -w packages/simulation",
+    "test": "npm run test --workspaces --if-present",
+    "sim": "npm run start -w packages/simulation",
+    "live": "npm run live -w packages/agent-core",
+    "dev:dashboard": "npm run dev -w packages/dashboard",
+    "audit:verify": "npm run verify -w packages/audit-engine"
+  },
+  "keywords": [
+    "binance-hackathon",
+    "autonomous-agent",
+    "bnb-chain",
+    "bstocks",
+    "risk-management",
+    "agentic-ai"
+  ],
+  "author": "Aegis-bStock Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.7.3"
+  }
+}

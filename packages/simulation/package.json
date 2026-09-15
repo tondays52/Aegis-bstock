@@ -1,0 +1,20 @@
+{
+  "name": "@aegis/simulation",
+  "version": "1.0.0",
+  "description": "14-day market sandbox replay runner for Aegis-bStock",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && node dist/runner.js"
+  },
+  "dependencies": {
+    "@aegis/agent-core": "^1.0.0",
+    "@aegis/audit-engine": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.7.3"
+  }
+}
