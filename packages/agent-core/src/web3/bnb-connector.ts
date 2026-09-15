@@ -9,6 +9,13 @@ export interface OrderParams {
   amount: number;
   expectedPrice: number;
   maxSlippageBps: number;
+  usePrivateRpc?: boolean; // Default true: Routes through 48 Club / NodeReal private builder
+}
+
+export interface Web3ExecutionResult extends ExecutionRecord {
+  privateRpcRouted: boolean;
+  mempoolLeakageRiskPct: number;
+  builderEndpointUsed: string;
 }
 
 export interface AuditAnchorResult {
@@ -61,15 +68,21 @@ export class BnbWeb3Connector {
 
   /**
    * Executes a trade order on BNB Smart Chain (via PancakeSwap / bStock pool routing)
+   * Simulates private builder RPC (48 Club / NodeReal) routing to prevent front-running & mempool leaks.
    */
-  public async executeOrder(params: OrderParams): Promise<ExecutionRecord> {
-    const { symbol, action, amount, expectedPrice, maxSlippageBps } = params;
+  public async executeOrder(params: OrderParams): Promise<Web3ExecutionResult> {
+    const { symbol, action, amount, expectedPrice, maxSlippageBps, usePrivateRpc = true } = params;
 
     await this.syncBlockNumber();
     this.cachedBlockNumber += 1;
 
+    // Private RPC: Zero frontrun risk, full slippage defense. Public RPC: Clamped to max 15 bps (0.15%)
+    const effectiveSlippageBps = usePrivateRpc 
+      ? maxSlippageBps 
+      : Math.min(15, maxSlippageBps);
+
     // Simulate minor realistic price jitter within slippage bounds
-    const slippageMultiplier = 1 + ((Math.random() * (maxSlippageBps / 2)) / 10000) * (action === 'BUY' ? 1 : -1);
+    const slippageMultiplier = 1 + ((Math.random() * (effectiveSlippageBps / 2)) / 10000) * (action === 'BUY' ? 1 : -1);
     const executedPrice = Math.round(expectedPrice * slippageMultiplier * 100) / 100;
     
     // BSC standard transaction: ~150,000 gas limit @ 3 Gwei = ~0.00045 BNB
@@ -87,7 +100,10 @@ export class BnbWeb3Connector {
       executedPrice,
       executedAmount: amount,
       gasUsedBnb: Math.max(0.0003, gasUsedBnb),
-      executionTimestamp: new Date().toISOString()
+      executionTimestamp: new Date().toISOString(),
+      privateRpcRouted: usePrivateRpc,
+      mempoolLeakageRiskPct: usePrivateRpc ? 0.00 : 25.0,
+      builderEndpointUsed: usePrivateRpc ? 'https://bsc-private.48.club' : 'https://bsc-dataseed.binance.org'
     };
   }
 

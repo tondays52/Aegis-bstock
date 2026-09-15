@@ -35,7 +35,40 @@ export function calculateEMA(prices: number[], period: number): number {
 }
 
 /**
- * Calculates Average True Range (ATR)
+ * Evaluates tick velocity and volatility dynamics to determine adaptive ATR lookback:
+ * - High-velocity momentum spikes: compress to 5 periods.
+ * - Low-volume sideways chop: expand to 28 periods.
+ * - Standard/Calm: 14 periods.
+ */
+export function getAdaptiveLookback(candles: Candle[]): { lookback: number; mode: 'COMPRESSED_5' | 'STANDARD_14' | 'EXPANDED_28'; velocity: number } {
+  if (candles.length < 10) {
+    return { lookback: 14, mode: 'STANDARD_14', velocity: 1.0 };
+  }
+
+  // Measure short-term 5-period ATR vs baseline 14-period ATR
+  const shortAtr = calculateATR(candles, 5);
+  const baselineAtr = calculateATR(candles, 14);
+
+  const velocity = baselineAtr > 0 ? shortAtr / baselineAtr : 1.0;
+
+  // Measure overall 28-period consolidation range relative to price
+  const recentCloses = candles.slice(-28).map(c => c.close);
+  const currentPrice = candles[candles.length - 1]?.close || 100;
+  const consolidationRangePct = currentPrice > 0 
+    ? ((Math.max(...recentCloses) - Math.min(...recentCloses)) / currentPrice) * 100 
+    : 1.0;
+
+  if (velocity >= 1.25) {
+    return { lookback: 5, mode: 'COMPRESSED_5', velocity: +velocity.toFixed(2) };
+  } else if ((velocity <= 0.75 || consolidationRangePct <= 0.20) && candles.length >= 28) {
+    return { lookback: 28, mode: 'EXPANDED_28', velocity: +velocity.toFixed(2) };
+  }
+
+  return { lookback: 14, mode: 'STANDARD_14', velocity: +velocity.toFixed(2) };
+}
+
+/**
+ * Calculates Average True Range (ATR) with static or adaptive period
  */
 export function calculateATR(candles: Candle[], period: number = 14): number {
   if (candles.length < 2) return 0;
@@ -53,7 +86,16 @@ export function calculateATR(candles: Candle[], period: number = 14): number {
   }
 
   const slice = trueRanges.slice(-period);
-  return slice.reduce((sum, tr) => sum + tr, 0) / slice.length;
+  return slice.reduce((sum, tr) => sum + tr, 0) / (slice.length || 1);
+}
+
+/**
+ * Calculates Auto-Adaptive ATR based on real-time market velocity
+ */
+export function calculateAdaptiveATR(candles: Candle[]): { atr: number; lookback: number; mode: 'COMPRESSED_5' | 'STANDARD_14' | 'EXPANDED_28' } {
+  const { lookback, mode } = getAdaptiveLookback(candles);
+  const atr = calculateATR(candles, lookback);
+  return { atr, lookback, mode };
 }
 
 /**

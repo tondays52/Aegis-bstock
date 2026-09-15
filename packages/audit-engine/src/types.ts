@@ -105,6 +105,22 @@ export interface MevProbeResult {
   routingAction: 'DIRECT_EXECUTION' | 'TWAP_SLICE' | 'ABORT';
 }
 
+export interface ZkAuditProof {
+  circuit: 'AegisPolicyProof_v1';
+  proofHash: string;      // Simulated succinct 256-byte proof hash
+  verifiedOnChain: boolean;
+  publicSignals: [string, string, string]; // [exposureLimitPass, netYieldPass, noVetoPass]
+}
+
+export interface ExecutionTelemetry {
+  modelTier: 'TIER_1_FAST' | 'TIER_2_FRONTIER';
+  inferenceLatencyMs: number;
+  tokenCostUsd: number;
+  privateRpcRouted: boolean;
+}
+
+export type SystemicContagionStatus = 'NORMAL' | 'ELEVATED' | 'BLACK_SWAN_LOCK';
+
 export interface AegisDecisionReceipt {
   decisionId: string;
   timestampUtc: string;
@@ -118,6 +134,9 @@ export interface AegisDecisionReceipt {
   economicFeasibility: EconomicFeasibility;
   failureMemory?: FailureMemoryContext;
   mevProbe?: MevProbeResult;
+  zkProof?: ZkAuditProof;
+  executionTelemetry?: ExecutionTelemetry;
+  systemicStatus?: SystemicContagionStatus;
   previousReceiptHash: string;
   receiptHash: string;
 }

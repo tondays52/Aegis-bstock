@@ -3,6 +3,7 @@ import { AegisConfig } from '../config/index.js';
 import { RegimeAnalysisResult } from '../quant/regime.js';
 import { FailureQueryResult } from '../memory/failure-memory.js';
 import { KellyPositionSizer } from '../quant/kelly.js';
+import { ContagionCheckResult, SystemicContagionDetector, AssetPriceDelta } from '../quant/contagion.js';
 
 export interface RiskOfficerInput {
   symbol: string;
@@ -15,6 +16,7 @@ export interface RiskOfficerInput {
   strategistProposal: CouncilReasoning['strategistProposal'];
   macroExposureCeilingPct?: number;
   failureMemoryResult?: FailureQueryResult;
+  systemicContagionResult?: ContagionCheckResult;
   config: AegisConfig;
 }
 
@@ -33,11 +35,23 @@ export class AdversarialRiskOfficerAgent {
       strategistProposal,
       macroExposureCeilingPct,
       failureMemoryResult,
+      systemicContagionResult,
       config
     } = input;
 
     const { action, targetAllocationPct, stopLoss, takeProfit } = strategistProposal;
     const { regime, realizedVolPct } = regimeAnalysis;
+
+    // 0. Systemic Black Swan Contagion Check
+    if (systemicContagionResult?.isBlackSwanContagion && action === 'BUY') {
+      return {
+        approved: false,
+        vetoReason: `[CRO BLACK SWAN VETO] ${systemicContagionResult.rationale}`,
+        riskScore: 100,
+        adjustedAllocationPct: 0,
+        maxDrawdownImpactBps: 0
+      };
+    }
 
     // 1. Calculate High-Water Mark Drawdown
     const currentDrawdownPct = peakPortfolioEquityUsd > 0
@@ -168,5 +182,12 @@ export class AdversarialRiskOfficerAgent {
       adjustedAllocationPct,
       maxDrawdownImpactBps
     };
+  }
+
+  /**
+   * Helper method to evaluate contagion from multi-asset price deltas
+   */
+  public static detectSystemicContagion(assets: AssetPriceDelta[]): ContagionCheckResult {
+    return SystemicContagionDetector.evaluate(assets);
   }
 }
